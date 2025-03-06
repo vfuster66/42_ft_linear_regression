@@ -61,7 +61,8 @@ def train_model(mileage, price, learning_rate, epochs):
 
         # Afficher l'évolution toutes les 10 000 itérations
         if epoch % 10000 == 0:
-            print(f"{Fore.YELLOW}📊 Epoch {epoch} - θ0: {theta0:.4f}, θ1: {theta1:.6f}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}📊 Epoch {epoch} - θ0: {theta0:.4f}, "
+                  f"θ1: {theta1:.6f}{Style.RESET_ALL}")
 
     return theta0, theta1
 

@@ -1,19 +1,19 @@
 import sys
 import os
-import numpy as np
-import pytest
 from colorama import Fore, Style, init
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from evaluate import mean_squared_error, load_model, load_data
+
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+)
 
 init(autoreset=True)
 
 
 def test_evaluate_mse():
     """📏 Test du calcul de la MSE depuis evaluate.py"""
-    print(f"{Fore.YELLOW}📏 Test: Calcul de la MSE depuis evaluate.py...{Style.RESET_ALL}")
+    print(f"{Fore.YELLOW}📏 Test: Calcul de la MSE depuis evaluate.py..."
+          f"{Style.RESET_ALL}")
     model = load_model()
     mileage, price = load_data()
 
