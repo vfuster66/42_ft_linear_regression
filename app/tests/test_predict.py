@@ -1,12 +1,11 @@
 import sys
 import os
-from predict import estimate_price, load_model
 from colorama import Fore, Style, init
+from predict import load_model, batch_predict
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 )
-
 
 init(autoreset=True)
 
@@ -20,18 +19,22 @@ def test_load_model():
     print(f"{Fore.GREEN}✅ Modèle chargé avec succès !{Style.RESET_ALL}")
 
 
-def test_estimate_price():
-    """💰 Test de la prédiction avec des valeurs connues."""
-    print(f"{Fore.YELLOW}💰 Test: Prédiction de prix...{Style.RESET_ALL}")
-    theta0, theta1 = 8499.50, -0.021448
-    price_low = estimate_price(5000, theta0, theta1)
-    price_high = estimate_price(300000, theta0, theta1)
+def test_batch_predict_limits():
+    """⚠️ Test: Vérification des limites batch."""
+    model = load_model()
+    theta0, theta1 = model["theta0"], model["theta1"]
 
-    assert price_low > price_high, \
-        "❌ Une voiture avec moins de km doit coûter plus cher"
-    assert price_low > 7000, \
-        "❌ Le prix d'une voiture récente doit être raisonnable"
-    assert price_high < 3000, \
-        "❌ Le prix d'une voiture très kilométrée doit être faible"
+    valid_mileages = [5000, 150000, 250000]
+    invalid_mileages = [-100, 350000]
 
-    print(f"{Fore.GREEN}✅ Prédiction correcte !{Style.RESET_ALL}")
+    predictions_valid = batch_predict(valid_mileages, theta0, theta1)
+    assert predictions_valid is not None, \
+        "❌ Batch valide ne doit pas retourner None"
+    assert len(predictions_valid) == len(valid_mileages), \
+        "❌ Mauvais nombre de prédictions retournées"
+
+    predictions_invalid = batch_predict(invalid_mileages, theta0, theta1)
+    assert predictions_invalid is None, "❌ Batch invalide doit retourner None"
+
+    print(f"{Fore.GREEN}✅ Limites des prédictions batch validées !"
+          f"{Style.RESET_ALL}")

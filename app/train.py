@@ -39,7 +39,8 @@ def estimate_price(mileage, theta0, theta1):
     return theta0 + (theta1 * mileage)
 
 
-def train_model(mileage, price, learning_rate, epochs):
+def train_model(mileage, price, learning_rate, epochs, mileage_mean,
+                mileage_std, price_mean, price_std):
     """Entraîne un modèle de régression linéaire par descente de gradient."""
     theta0 = np.random.uniform(-1, 1)  # 🔵 Initialisation aléatoire autour de 0
     theta1 = np.random.uniform(-1, 1)
@@ -64,6 +65,11 @@ def train_model(mileage, price, learning_rate, epochs):
             print(f"{Fore.YELLOW}📊 Epoch {epoch} - θ0: {theta0:.4f}, "
                   f"θ1: {theta1:.6f}{Style.RESET_ALL}")
 
+        if epoch % 10000 == 0:
+            save_model_checkpoint(epoch, theta0, theta1,
+                                  mileage_mean, mileage_std,
+                                  price_mean, price_std)
+
     return theta0, theta1
 
 
@@ -71,6 +77,21 @@ def save_model(theta0, theta1, mileage_mean, mileage_std,
                price_mean, price_std, filename="model.json"):
     """Sauvegarde les paramètres du modèle et des valeurs de normalisation."""
     with open(filename, "w") as f:
+        json.dump({
+            "theta0": theta0,
+            "theta1": theta1,
+            "mileage_mean": mileage_mean,
+            "mileage_std": mileage_std,
+            "price_mean": price_mean,
+            "price_std": price_std
+        }, f)
+
+
+def save_model_checkpoint(epoch, theta0, theta1, mileage_mean, mileage_std,
+                          price_mean, price_std):
+    """Sauvegarde régulièrement les paramètres du modèle en JSON."""
+    checkpoint_filename = f"model_epoch_{epoch}.json"
+    with open(checkpoint_filename, "w") as f:
         json.dump({
             "theta0": theta0,
             "theta1": theta1,
@@ -123,7 +144,8 @@ if __name__ == "__main__":
     print(f"{Fore.YELLOW}🔄 Entraînement du modèle en cours..."
           f"{Style.RESET_ALL}")
     theta0_norm, theta1_norm = train_model(
-        mileage_norm, price_norm, LEARNING_RATE, EPOCHS)
+        mileage_norm, price_norm, LEARNING_RATE, EPOCHS,
+        mileage_mean, mileage_std, price_mean, price_std)
 
     # Conversion des paramètres normalisés en valeurs réelles
     theta1 = theta1_norm * (price_std / mileage_std)
