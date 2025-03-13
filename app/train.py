@@ -3,27 +3,23 @@ import json
 import matplotlib.pyplot as plt
 from colorama import Fore, Style, init
 
-# Initialisation de colorama pour Windows et autres plateformes
+# Initialisation de colorama
 init(autoreset=True)
 
 # Hyperparamètres
 LEARNING_RATE = 0.0001
 EPOCHS = 100000
-
 MAX_THETA = 1e6
 
 
 def load_data(filename="data.csv"):
-    """Charge les données depuis un fichier CSV."""
     data = np.loadtxt(filename, delimiter=',', skiprows=1)
-    mileage = data[:, 0]  # Kilométrage
-    price = data[:, 1]  # Prix
+    mileage = data[:, 0]
+    price = data[:, 1]
     return mileage, price
 
 
 def normalize_data(mileage, price):
-    """Normalise les données pour éviter la divergence
-    de la descente de gradient."""
     mileage_mean, mileage_std = np.mean(mileage), np.std(mileage)
     price_mean, price_std = np.mean(price), np.std(price)
 
@@ -35,20 +31,20 @@ def normalize_data(mileage, price):
 
 
 def estimate_price(mileage, theta0, theta1):
-    """Calcule le prix estimé en fonction du kilométrage."""
     return theta0 + (theta1 * mileage)
 
 
 def train_model(mileage, price, learning_rate, epochs, mileage_mean,
                 mileage_std, price_mean, price_std):
-    """Entraîne un modèle de régression linéaire par descente de gradient."""
-    theta0 = np.random.uniform(-1, 1)  # 🔵 Initialisation aléatoire autour de 0
+    theta0 = np.random.uniform(-1, 1)
     theta1 = np.random.uniform(-1, 1)
 
     m = len(mileage)
+    cost_history = []  # 🔵 On initialise la liste pour stocker J(θ)
 
     for epoch in range(epochs):
-        error = estimate_price(mileage, theta0, theta1) - price
+        predictions = estimate_price(mileage, theta0, theta1)
+        error = predictions - price
 
         gradient0 = (1 / m) * np.sum(error)
         gradient1 = (1 / m) * np.sum(error * mileage)
@@ -56,26 +52,26 @@ def train_model(mileage, price, learning_rate, epochs, mileage_mean,
         theta0 -= learning_rate * gradient0
         theta1 -= learning_rate * gradient1
 
-        # ✅ Ajout d'une borne pour éviter l'explosion des valeurs
         theta0 = np.clip(theta0, -MAX_THETA, MAX_THETA)
         theta1 = np.clip(theta1, -MAX_THETA, MAX_THETA)
 
-        # Afficher l'évolution toutes les 10 000 itérations
-        if epoch % 10000 == 0:
-            print(f"{Fore.YELLOW}📊 Epoch {epoch} - θ0: {theta0:.4f}, "
-                  f"θ1: {theta1:.6f}{Style.RESET_ALL}")
+        # ✅ Calcul du coût J(θ) à chaque epoch
+        cost = (1 / (2 * m)) * np.sum(error ** 2)
+        cost_history.append(cost)
 
         if epoch % 10000 == 0:
+            print(f"{Fore.YELLOW}📊 Epoch {epoch} - θ0: {theta0:.4f}, "
+                  f"θ1: {theta1:.6f} - Coût J(θ): {cost:.6f}{Style.RESET_ALL}")
+
             save_model_checkpoint(epoch, theta0, theta1,
                                   mileage_mean, mileage_std,
                                   price_mean, price_std)
 
-    return theta0, theta1
+    return theta0, theta1, cost_history
 
 
 def save_model(theta0, theta1, mileage_mean, mileage_std,
                price_mean, price_std, filename="model.json"):
-    """Sauvegarde les paramètres du modèle et des valeurs de normalisation."""
     with open(filename, "w") as f:
         json.dump({
             "theta0": theta0,
@@ -89,7 +85,6 @@ def save_model(theta0, theta1, mileage_mean, mileage_std,
 
 def save_model_checkpoint(epoch, theta0, theta1, mileage_mean, mileage_std,
                           price_mean, price_std):
-    """Sauvegarde régulièrement les paramètres du modèle en JSON."""
     checkpoint_filename = f"model_epoch_{epoch}.json"
     with open(checkpoint_filename, "w") as f:
         json.dump({
@@ -104,12 +99,9 @@ def save_model_checkpoint(epoch, theta0, theta1, mileage_mean, mileage_std,
 
 def plot_regression(mileage, price, theta0, theta1,
                     filename="regression_plot.png"):
-    """Sauvegarde le graphique au lieu
-    de l'afficher pour éviter les problèmes avec Docker."""
-    plt.figure(figsize=(8, 6))  # Taille du graphique
+    plt.figure(figsize=(8, 6))
     plt.scatter(mileage, price, color='blue', label='Données réelles')
 
-    # Tracer la droite de régression
     min_x, max_x = min(mileage), max(mileage)
     x_values = np.linspace(min_x, max_x, 100)
     y_values = theta0 + theta1 * x_values
@@ -121,15 +113,25 @@ def plot_regression(mileage, price, theta0, theta1,
     plt.legend()
     plt.grid(True)
 
-    # Sauvegarde du graphique au lieu de l'afficher
     plt.savefig(filename)
     print(f"{Fore.CYAN}📊 Le graphique a été sauvegardé sous '{filename}'"
           f"{Style.RESET_ALL}")
 
 
+def plot_cost_function(cost_history, filename="cost_function_plot.png"):
+    """Trace la courbe de coût J(θ) en fonction des itérations."""
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(len(cost_history)), cost_history, color='green')
+    plt.title("Courbe de coût J(θ) pendant l'apprentissage")
+    plt.xlabel("Itérations")
+    plt.ylabel("Coût J(θ)")
+    plt.grid(True)
+    plt.savefig(filename)
+    print(f"{Fore.CYAN}📊 Courbe de coût sauvegardée sous '{filename}'"
+          f"{Style.RESET_ALL}")
+
+
 def mean_squared_error(mileage, price, theta0, theta1):
-    """Calcule l'erreur quadratique moyenne (MSE)
-    entre les prix réels et estimés."""
     predictions = theta0 + theta1 * mileage
     mse = np.mean((predictions - price) ** 2)
     return mse
@@ -143,7 +145,7 @@ if __name__ == "__main__":
 
     print(f"{Fore.YELLOW}🔄 Entraînement du modèle en cours..."
           f"{Style.RESET_ALL}")
-    theta0_norm, theta1_norm = train_model(
+    theta0_norm, theta1_norm, cost_history = train_model(
         mileage_norm, price_norm, LEARNING_RATE, EPOCHS,
         mileage_mean, mileage_std, price_mean, price_std)
 
@@ -151,7 +153,6 @@ if __name__ == "__main__":
     theta1 = theta1_norm * (price_std / mileage_std)
     theta0 = price_mean - (theta1 * mileage_mean)
 
-    # Sauvegarde des paramètres du modèle
     save_model(theta0, theta1, mileage_mean, mileage_std,
                price_mean, price_std)
 
@@ -161,6 +162,8 @@ if __name__ == "__main__":
           f"{Style.RESET_ALL}")
 
     mse = mean_squared_error(mileage, price, theta0, theta1)
+    print(f"{Fore.BLUE}📏 MSE sur l'ensemble des données : "
+          f"{Fore.MAGENTA}{mse:.2f}{Style.RESET_ALL}")
 
-    # Affichage du graphique avec la régression linéaire
     plot_regression(mileage, price, theta0, theta1)
+    plot_cost_function(cost_history)
